@@ -10,12 +10,15 @@ static NSString *const TranslatedPrefix = @"_translated";
 
 @interface ViewController ()
 
-@property (nonatomic) NSArray <FileModel *> *files;
-
 @property (weak) IBOutlet NSTextField *startSymbolsTextField;
 @property (weak) IBOutlet NSTextField *supportedFormatsTextField;
 
 @property (weak) IBOutlet NSProgressIndicator *progress;
+
+
+@property (nonatomic) NSArray <FileModel *> *files;
+
+@property (nonatomic) NSURL *dirURL;
 
 @end
 
@@ -29,10 +32,10 @@ static NSString *const TranslatedPrefix = @"_translated";
 #pragma mark - Actions
 - (IBAction)translateAction:(id)sender
 {
-	NSURL *dirURL = [self getDirURL];
+	self.dirURL = [self getDirURL];
 	
 	//create copy item
-	NSString *dirPath = [dirURL path];
+	NSString *dirPath = [self.dirURL path];
 	
 	[self createDirectoryTreeWithDir:nil andOriginPath:dirPath];
 	
@@ -68,6 +71,10 @@ static NSString *const TranslatedPrefix = @"_translated";
 	[self.progress setDoubleValue:(double)translatedFileCount];
 	
 	if (translatedFileCount == self.files.count) {
+		
+		NSURL *url = [self.dirURL URLByDeletingLastPathComponent];
+		
+		[[NSWorkspace sharedWorkspace] openURL: url];
 		[NSApp terminate:self];
 	}
 }
