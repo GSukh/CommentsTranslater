@@ -6,5 +6,6 @@
 @property (nonatomic) NSString *translatedPath;
 
 @property (nonatomic) BOOL translatable;
+@property (nonatomic) BOOL translated;
 
 @end

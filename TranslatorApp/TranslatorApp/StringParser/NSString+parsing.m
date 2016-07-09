@@ -66,9 +66,7 @@
 					comment.originalString = commentString;
 					comment.loc = commentStartIndex + 1;
 					[substrings addObject:comment];
-				} else {
-					NSLog(@"%@", commentString);
-				}
+				} 
 			}
         }
     }
@@ -77,7 +75,7 @@
 
 -(BOOL)isCodeString:(NSString *)string
 {
-	NSArray *codeComponents = @[@"=", @"if", @"for", @"+", @"-", @"*", @"/"];
+	NSArray *codeComponents = @[@"=", @"if", @"for", @"+", @"-", @"*"];
 	BOOL stringContainCodePart = NO;
 	
 	for (NSString *codePart in codeComponents) {

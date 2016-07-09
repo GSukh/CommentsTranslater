@@ -2,6 +2,5 @@
 
 @interface ViewController : NSViewController
 
-
 @end
 

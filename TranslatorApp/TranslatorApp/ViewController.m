@@ -12,6 +12,11 @@ static NSString *const TranslatedPrefix = @"_translated";
 
 @property (nonatomic) NSArray <FileModel *> *files;
 
+@property (weak) IBOutlet NSTextField *startSymbolsTextField;
+@property (weak) IBOutlet NSTextField *supportedFormatsTextField;
+
+@property (weak) IBOutlet NSProgressIndicator *progress;
+
 @end
 
 @implementation ViewController
@@ -19,39 +24,76 @@ static NSString *const TranslatedPrefix = @"_translated";
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    
-    
-    NSURL *dirURL = [self getDirURL];
-    
-    //create copy item
-    NSString *dirPath = [dirURL path];
-    
-    [self createDirectoryTreeWithDir:nil andOriginPath:dirPath];
-    
-    self.files = [self getFilesFromDirectory:dirPath];
-    for (FileModel *file in self.files) {
-        
-        NSMutableString *originFilePath = [NSMutableString stringWithString:file.originalPath];
-        [originFilePath insertString:TranslatedPrefix atIndex:dirPath.length];
-        
-        file.translatedPath = [originFilePath copy];
-        
-        if (file.translatable) {
-            [self translateFile:file];
-        } else {
-            [self copyFile:file];
-        }
-    }
 }
+
+#pragma mark - Actions
+- (IBAction)translateAction:(id)sender
+{
+	NSURL *dirURL = [self getDirURL];
+	
+	//create copy item
+	NSString *dirPath = [dirURL path];
+	
+	[self createDirectoryTreeWithDir:nil andOriginPath:dirPath];
+	
+	self.files = [self getFilesFromDirectory:dirPath];
+	
+	[self.progress setMinValue:0];
+	[self.progress setMaxValue:self.files.count];
+	
+	for (FileModel *file in self.files) {
+		
+		NSMutableString *originFilePath = [NSMutableString stringWithString:file.originalPath];
+		[originFilePath insertString:TranslatedPrefix atIndex:dirPath.length];
+		
+		file.translatedPath = [originFilePath copy];
+		
+		if (file.translatable) {
+			[self translateFile:file];
+		} else {
+			[self copyFile:file];
+		}
+	}
+}
+
+- (void)updateProgress
+{
+	NSInteger translatedFileCount = 0;
+	for (FileModel *file in self.files) {
+		if (file.translated) {
+			translatedFileCount++;
+		}
+	}
+	
+	[self.progress setDoubleValue:(double)translatedFileCount];
+	
+	if (translatedFileCount == self.files.count) {
+		[NSApp terminate:self];
+	}
+}
+
 
 - (NSArray *)startedStrings
 {
-    return @[@"%", @"//"];
+	NSString *startSymbols = [self.startSymbolsTextField stringValue];
+	
+	NSArray *symbols = [startSymbols componentsSeparatedByString:@","];
+	
+	return symbols;
 }
 
 - (NSArray *)endedStrings
 {
-    return @[@"\n"];
+	return @[@"\n"];
+}
+
+- (NSArray *)supportedFileFormats
+{
+	NSString *supportedFormatsString = [self.supportedFormatsTextField stringValue];
+	
+	NSArray *supportedFormats = [supportedFormatsString componentsSeparatedByString:@","];
+	
+	return supportedFormats;
 }
 
 - (void)createDirectoryTreeWithDir:(NSString *)directoryPath andOriginPath:(NSString *)originPath
@@ -121,6 +163,7 @@ static NSString *const TranslatedPrefix = @"_translated";
             FileModel *file = [[FileModel alloc] init];
             file.originalPath = filePath;
             file.translatable = [self fileIsTranslatable:file];
+			file.translated = NO;
             
             [files addObject:file];
             
@@ -134,7 +177,7 @@ static NSString *const TranslatedPrefix = @"_translated";
 
 - (BOOL)fileIsTranslatable:(FileModel *)file
 {
-    NSArray *supportedFormats = @[@".m", @".h"];
+	NSArray *supportedFormats = [self supportedFileFormats];
     
     BOOL translatable = NO;
     
@@ -168,15 +211,12 @@ static NSString *const TranslatedPrefix = @"_translated";
         return;
     }
     
-    //NSArray <TranslatableStringModel *> *comments = [contentString substringsBetweenStartString:@"%" andEndString:@"\n"];
     NSArray <TranslatableStringModel *> *comments = [contentString substringsBetweenStartStrings:[self startedStrings] andEndStrings:[self endedStrings]];
 
     NSInteger __block requestsCount = 0;
     
-    //NSLog(@"translate file %@:", file.originalPath);
     for (TranslatableStringModel *comment in comments) {
-        //NSLog(@"comment %@", comment.originalString);
-        
+		
         requestsCount++;
         [[YandexTranslator sharedTranslator] getTranslationForString:comment
                                                              success:^{
@@ -214,7 +254,6 @@ static NSString *const TranslatedPrefix = @"_translated";
 
 - (void)insertNewComments:(NSArray *)comments inFile:(FileModel *)file
 {
-    NSLog(@"insertNewComments");
     NSError *error = nil;
     NSString *contentString = [NSString stringWithContentsOfFile:file.originalPath encoding:NSUTF8StringEncoding error:&error];
     
@@ -238,7 +277,8 @@ static NSString *const TranslatedPrefix = @"_translated";
     if (!fileCreated) {
         NSLog(@"file doesn't created : %@", file.originalPath);
     } else {
-        NSLog(@"file created : %@", file.originalPath);
+		file.translated = YES;
+		[self updateProgress];
     }
 }
 
@@ -250,14 +290,14 @@ static NSString *const TranslatedPrefix = @"_translated";
     if (copyError) {
         NSLog(@"copy error: %@", copyError);
     } else {
-        NSLog(@"file has copied : %@", file.originalPath);
+		file.translated = YES;
+		[self updateProgress];
     }
 }
 
 - (void)setRepresentedObject:(id)representedObject
 {
     [super setRepresentedObject:representedObject];
-
 }
 
 @end

@@ -8,5 +8,4 @@
 
 -(NSArray <TranslatableStringModel *> *)substringsBetweenStartStrings:(NSArray *)startStrings andEndStrings:(NSArray *)endStrings;
 
-
 @end
